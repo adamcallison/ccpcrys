@@ -34,6 +34,12 @@ def reflection_stats(triplets, friedel=False):
                 refls[r] = 1
     return refls
 
+def reduced_state_to_original(reduced_state, toprefl_vec, toprefl_start):
+    state = reduced_state
+    state = np.array(list(state[:toprefl_start]) + list(toprefl_vec) + \
+        list(state[toprefl_start:]))
+    return state
+
 def decode_binary(state, var_sizes):
     var_start = 0
     decoded = []
@@ -44,3 +50,29 @@ def decode_binary(state, var_sizes):
         decoded.append(var_val)
         var_start = var_end
     return np.array(decoded)
+
+def ints_to_angles(ints, var_sizes, symmetric=True):
+    var_sizes = np.array(var_sizes, dtype=int)
+    if symmetric:
+        ms = ints + 1
+        angles = ( 2*np.pi*ms/((2**var_sizes) + 1) ) - np.pi
+    else:
+        ms = ints
+        angles = ( 2*np.pi*ms/((2**var_sizes)) ) - np.pi
+    return angles
+
+def compute_angle_sums(angles, triplets, refl_to_int, friedel=False):
+    ang_sums = []
+    for t in triplets:
+        angs, signs = [], []
+        for r in t:
+            if friedel:
+                r, sign = friedel_standardise(r), (1.0 if friedel_standard(r) else -1.0)
+            else:
+                r, sign = r, 1.0
+            angs.append(angles[refl_to_int[r]])
+            signs.append(sign)
+        ang_sums.append(np.dot(signs, angs))
+
+    ang_sums = np.array(ang_sums)
+    return ang_sums
