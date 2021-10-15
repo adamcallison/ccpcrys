@@ -4,10 +4,19 @@ import refl_processing as rp
 import hambuilding as hb
 import mc
 
-def run(triplets, var_size, mc_iters, mc_runs=1, friedel=True, symmetric=True):
-    Jmat_orig, hvec_orig, ic_orig, refl_stats, int_to_refl_orig, \
-        refl_to_int_orig = hb.structure_ham(var_size, triplets, \
-        friedel=friedel, symmetric=symmetric, verbose=True)
+def run(triplets, var_size, mc_iters, mc_runs=1, friedel=True, symmetric=True, \
+    hamiltonian=None):
+
+    if hamiltonian is None:
+        Jmat_orig, hvec_orig, ic_orig, refl_stats, int_to_refl_orig, \
+            refl_to_int_orig = hb.structure_ham(var_size, triplets, \
+            friedel=friedel, symmetric=symmetric, verbose=True)
+        hamiltonian = (Jmat_orig, hvec_orig, ic_orig, refl_stats, \
+            int_to_refl_orig, refl_to_int_orig)
+    else:
+        Jmat_orig, hvec_orig, ic_orig, refl_stats, int_to_refl_orig, \
+            refl_to_int_orig = hamiltonian
+
     Jmat, hvec, ic, int_to_refl, refl_to_int, toprefl, toprefl_vec = \
         hb.fix_variable(Jmat_orig, hvec_orig, ic_orig, refl_stats, \
         refl_to_int_orig)
@@ -26,7 +35,7 @@ def run(triplets, var_size, mc_iters, mc_runs=1, friedel=True, symmetric=True):
         if runs > 1: print(f'Run {j+1} of {runs}   ', end='\r')
         input_state = mc.generate_state(total_qubits)
         state, costs = mc.mc(Jmat, hvec, ic, (var_size,)*total_vars, \
-            input_state, iterations, 3.0, cost_freq=1, verbose=verbose)
+            input_state, mc_iters, 3.0, cost_freq=1, verbose=verbose)
         states.append(state)
         costss.append(costs)
 
@@ -38,10 +47,10 @@ def run(triplets, var_size, mc_iters, mc_runs=1, friedel=True, symmetric=True):
         toprefl_start)
 
     cost_check = mc.cost(state, Jmat_orig, hvec_orig, ic_orig)
-    assert costs[-1] == cost_check
+    assert np.abs(costs[-1] - cost_check) < 1e-8
     cost_init = mc.cost(input_state, Jmat_orig, hvec_orig, ic_orig)
 
-    print(f'cost={costs[-1]}, cost_init={cost_init}   ')
+    print(f'cost={costs[-1]}, cost_check={cost_check}, cost_init={cost_init}   ')
 
     num_refls = len(refl_stats)
 
@@ -60,4 +69,4 @@ def run(triplets, var_size, mc_iters, mc_runs=1, friedel=True, symmetric=True):
     unmapped_cost = np.sum(ang_sums**2)
     print(f'unmapped_cost={unmapped_cost}  ')
 
-    return costs, angles, angles_init, ang_sums, ang_sums_init
+    return costs, angles, angles_init, ang_sums, ang_sums_init, hamiltonian
