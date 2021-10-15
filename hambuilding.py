@@ -15,6 +15,13 @@ def prod_binary(total_qubits, var1_start, var1_end, var2_start, var2_end, symmet
     Jmat, hvec, ic = get_zeros(total_qubits)
     var1_size, var2_size = var1_end - var1_start, var2_end - var2_start
 
+    if not symmetric:
+        ic += 1
+        for ind1, qubit_ind1 in enumerate(range(var1_start, var1_end)):
+            hvec[qubit_ind1] += 2**ind1
+        for ind2, qubit_ind2 in enumerate(range(var2_start, var2_end)):
+            hvec[qubit_ind2] += 2**ind2
+
     for ind1, qubit_ind1 in enumerate(range(var1_start, var1_end)):
         for ind2, qubit_ind2 in enumerate(range(var2_start, var2_end)):
             if qubit_ind1 == qubit_ind2:
@@ -25,7 +32,10 @@ def prod_binary(total_qubits, var1_start, var1_end, var2_start, var2_end, symmet
     M1 = 2**var1_size
     M2 = 2**var2_size
 
-    scale = (np.pi**2)/( (M1+1)*(M2+1) )
+    if symmetric:
+        scale = (np.pi**2)/( (M1+1)*(M2+1) )
+    else:
+        scale = (np.pi**2)/( (M1)*(M2) )
 
     return scale*Jmat, scale*hvec, scale*ic
 
