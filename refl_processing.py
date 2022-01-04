@@ -3,7 +3,7 @@ from copy import deepcopy as dc
 
 import m2swork.hams as hams
 
-def friedel_standard(r):
+def friedel_standard_old(r):
     rl = [int(x) for x in r.strip('[').strip(']').split(',')]
     if rl[0] < 0:
         return False
@@ -15,6 +15,16 @@ def friedel_standard(r):
                 return False
 
     return True
+
+def friedel_standard(r):
+    rl = [int(x) for x in r.strip('[').strip(']').split(',')]
+    if (rl[0] == 0) and (rl[2] == 0):
+        return rl[1] >= 0
+    elif (rl[2] == 0):
+        return rl[0] >= 0
+    else:
+        return rl[2] >= 0
+    raise Exception("Shouldn't have reached here")
 
 def friedel_standardise(r):
     if not friedel_standard(r):

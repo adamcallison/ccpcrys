@@ -119,7 +119,7 @@ def fix_variable(Jmat, hvec, ic, refl_stats, refl_to_int):
     toprefl = list(refl_stats.keys())[np.argmax(list(refl_stats.values()))]
     toprefl_int = refl_to_int[toprefl]
     toprefl_start, toprefl_end = toprefl_int*var_size, (toprefl_int+1)*var_size
-    toprefl_vec = np.array([1, 1, 1, 1], dtype=np.float64)
+    toprefl_vec = np.array([1]*var_size, dtype=np.float64)
     Jmat_mod, Jmat_rs, Jmat_cs, Jmat_rcs = np.delete(np.delete(Jmat, range(toprefl_start, toprefl_end), axis=0), range(toprefl_start, toprefl_end), axis=1), \
         Jmat[toprefl_start:toprefl_end,:], \
         Jmat[:,toprefl_start:toprefl_end], \
