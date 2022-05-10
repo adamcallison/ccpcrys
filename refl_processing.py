@@ -44,10 +44,25 @@ def reflection_stats(triplets, friedel=False):
                 refls[r] = 1
     return refls
 
-def reduced_state_to_original(reduced_state, toprefl_vec, toprefl_start):
+#def reduced_state_to_original(reduced_state, toprefl_vec, toprefl_start):
+#    state = reduced_state
+#    state = np.array(list(state[:toprefl_start]) + list(toprefl_vec) + \
+#        list(state[toprefl_start:]))
+#    return state
+
+def reduced_state_to_original(reduced_state, fixedrefl_vecs, fixedrefl_starts):
+    idx = np.argsort(fixedrefl_starts)
+    fixedrefl_starts = np.array(fixedrefl_starts)[idx]
+    fixedrefl_vecs = [fixedrefl_vecs[i] for i in idx]
     state = reduced_state
-    state = np.array(list(state[:toprefl_start]) + list(toprefl_vec) + \
-        list(state[toprefl_start:]))
+    while len(fixedrefl_starts)>0:
+        fs, fv = fixedrefl_starts[0], fixedrefl_vecs[0]
+        state = np.array(list(state[:fs]) + list(fv) + \
+                list(state[fs:]))
+        fixedrefl_starts = fixedrefl_starts[1:]
+        fixedrefl_vecs = fixedrefl_vecs[1:]
+        #veclen = len(fv)
+        #fixedrefl_starts += veclen
     return state
 
 def decode_binary(state, var_sizes):
@@ -65,7 +80,7 @@ def ints_to_angles(ints, var_sizes, symmetric=True):
     var_sizes = np.array(var_sizes, dtype=int)
     if symmetric:
         ms = ints + 1
-        angles = ( 2*np.pi*ms/((2**var_sizes) + 1) ) - np.pi
+        angles = ( 2*np.pi*ms/((2**var_sizes) + 2) ) - np.pi
     else:
         ms = ints
         angles = ( 2*np.pi*ms/((2**var_sizes)) ) - np.pi

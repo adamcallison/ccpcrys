@@ -111,12 +111,36 @@ def structure_ham(var_size, triplets, friedel=False, symmetric=True, verbose=Fal
 
     return Jmat, hvec, ic, refl_stats, int_to_refl, refl_to_int
 
-def fix_variable(Jmat, hvec, ic, refl_stats, refl_to_int):
+def find_top_refls(refl_stats, number):
+    idx = np.argsort(list(refl_stats.values()))
+    all_refls = list(refl_stats.keys())
+    refls = []
+    for j in range(number):
+        refls.append(all_refls[idx[-j]])
+    return refls
+
+def fix_variables(Jmat, hvec, ic, refl_stats, refl_to_int, refls_to_fix):
+    Jmat_mod, hvec_mod, ic_mod =  Jmat, hvec, ic
+    refl_to_int_mod = refl_to_int
+    refl_stats_mod = refl_stats
+
+    fixedrefl_vecs = []
+    for refl_to_fix in refls_to_fix:
+        Jmat_mod, hvec_mod, ic_mod, int_to_refl_mod, refl_to_int_mod, fixedrefl_vec = fix_variable(Jmat_mod, hvec_mod, ic_mod, refl_stats_mod, refl_to_int_mod, refl_to_fix)
+        fixedrefl_vecs.append(fixedrefl_vec)
+        refl_stats_mod = dict(refl_stats_mod)
+        del refl_stats_mod[refl_to_fix]
+    return Jmat_mod, hvec_mod, ic_mod, int_to_refl_mod, refl_to_int_mod, fixedrefl_vecs
+
+
+#def fix_variable(Jmat, hvec, ic, refl_stats, refl_to_int):
+def fix_variable(Jmat, hvec, ic, refl_stats, refl_to_int, refl_to_fix):
     num_refls = len(refl_stats)
     total_qubits = hvec.shape[0]
     var_size = total_qubits//num_refls
 
-    toprefl = list(refl_stats.keys())[np.argmax(list(refl_stats.values()))]
+    #toprefl = list(refl_stats.keys())[np.argmax(list(refl_stats.values()))]
+    toprefl = refl_to_fix # due to old code
     toprefl_int = refl_to_int[toprefl]
     toprefl_start, toprefl_end = toprefl_int*var_size, (toprefl_int+1)*var_size
     toprefl_vec = np.array([1]*var_size, dtype=np.float64)
@@ -139,4 +163,5 @@ def fix_variable(Jmat, hvec, ic, refl_stats, refl_to_int):
     refl_to_int_mod = dict(zip(refls_mod, range(num_refls_mod)))
     int_to_refl_mod = dict(zip(range(num_refls_mod), refls_mod))
 
-    return Jmat_mod, hvec_mod, ic_mod, int_to_refl_mod, refl_to_int_mod, toprefl, toprefl_vec
+    #return Jmat_mod, hvec_mod, ic_mod, int_to_refl_mod, refl_to_int_mod, toprefl, toprefl_vec
+    return Jmat_mod, hvec_mod, ic_mod, int_to_refl_mod, refl_to_int_mod, toprefl_vec

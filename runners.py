@@ -18,9 +18,14 @@ def run(triplets, var_size, mc_iters, mc_runs=1, friedel=True, symmetric=True, \
         Jmat_orig, hvec_orig, ic_orig, refl_stats, int_to_refl_orig, \
             refl_to_int_orig = hamiltonian
 
-    Jmat, hvec, ic, int_to_refl, refl_to_int, toprefl, toprefl_vec = \
-        hb.fix_variable(Jmat_orig, hvec_orig, ic_orig, refl_stats, \
-        refl_to_int_orig)
+    #Jmat, hvec, ic, int_to_refl, refl_to_int, toprefl, toprefl_vec = \
+    #    hb.fix_variable(Jmat_orig, hvec_orig, ic_orig, refl_stats, \
+    #    refl_to_int_orig)
+    refls_to_fix = hb.find_top_refls(refl_stats, 3)
+    print(refls_to_fix)
+    Jmat, hvec, ic, int_to_refl, refl_to_int, fixed_reflvecs = hb.fix_variables(Jmat_orig, hvec_orig, ic_orig, refl_stats, refl_to_int_orig, refls_to_fix)
+
+    print(hvec.shape)
 
     total_qubits = len(hvec)
     total_vars = total_qubits // var_size
@@ -43,12 +48,21 @@ def run(triplets, var_size, mc_iters, mc_runs=1, friedel=True, symmetric=True, \
 
     idx = np.argmin([c[-1] for c in costss])
     costs, state, input_state = costss[idx], states[idx], states_init[idx]
-    toprefl_start = refl_to_int_orig[toprefl]*var_size
-    state = rp.reduced_state_to_original(state, toprefl_vec, toprefl_start)
-    input_state = rp.reduced_state_to_original(input_state, toprefl_vec, \
-        toprefl_start)
+    rtf_starts = []
+    for j, rtf in enumerate(refls_to_fix):
+        rtf_starts.append(refl_to_int_orig[rtf]*var_size)
+    rtf_starts = np.array(rtf_starts)
+    state = rp.reduced_state_to_original(state, fixed_reflvecs, rtf_starts)
+    input_state = rp.reduced_state_to_original(input_state, fixed_reflvecs, rtf_starts)
+
+        #rtf, rtfvec = refl_to_fix, fixed_reflvecs[j]
+        #rtf_start = refl_to_int_orig[rtf]*var_size
+        #state = rp.reduced_state_to_original(state, rtfvec, rtf_start)
+        #input_state = rp.reduced_state_to_original(input_state, rtfvec, \
+        #    rtf_start)
 
     cost_check = mc.cost(state, Jmat_orig, hvec_orig, ic_orig)
+    print(costs[-1], cost_check)
     assert np.abs(costs[-1] - cost_check) < 1e-8
     cost_init = mc.cost(input_state, Jmat_orig, hvec_orig, ic_orig)
 
