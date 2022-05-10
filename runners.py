@@ -6,12 +6,12 @@ import mc
 import anneal
 
 def run(triplets, var_size, mc_iters, mc_runs=1, friedel=True, symmetric=True, \
-    hamiltonian=None):
+    hamiltonian=None, weights=None):
 
     if hamiltonian is None:
         Jmat_orig, hvec_orig, ic_orig, refl_stats, int_to_refl_orig, \
             refl_to_int_orig = hb.structure_ham(var_size, triplets, \
-            friedel=friedel, symmetric=symmetric, verbose=True)
+            friedel=friedel, symmetric=symmetric, weights=weights, verbose=True)
         hamiltonian = (Jmat_orig, hvec_orig, ic_orig, refl_stats, \
             int_to_refl_orig, refl_to_int_orig)
     else:
@@ -21,7 +21,8 @@ def run(triplets, var_size, mc_iters, mc_runs=1, friedel=True, symmetric=True, \
     #Jmat, hvec, ic, int_to_refl, refl_to_int, toprefl, toprefl_vec = \
     #    hb.fix_variable(Jmat_orig, hvec_orig, ic_orig, refl_stats, \
     #    refl_to_int_orig)
-    refls_to_fix = hb.find_top_refls(refl_stats, 3)
+    #refls_to_fix = hb.find_top_refls(refl_stats, 3)
+    refls_to_fix = hb.find_fixable_refls(refl_stats)
     print(refls_to_fix)
     Jmat, hvec, ic, int_to_refl, refl_to_int, fixed_reflvecs = hb.fix_variables(Jmat_orig, hvec_orig, ic_orig, refl_stats, refl_to_int_orig, refls_to_fix)
 

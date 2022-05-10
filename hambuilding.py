@@ -95,7 +95,7 @@ def triplet_binary(total_qubits, var1_start, var1_end, var2_start, var2_end, var
 
     return Jmat, hvec, ic
 
-def structure_ham(var_size, triplets, friedel=False, symmetric=True, verbose=False):
+def structure_ham(var_size, triplets, friedel=False, symmetric=True, weights=None, verbose=False):
 
     num_triplets = len(triplets)
     refl_stats = rp.reflection_stats(triplets, friedel=friedel)
@@ -105,6 +105,9 @@ def structure_ham(var_size, triplets, friedel=False, symmetric=True, verbose=Fal
     int_to_refl = dict(zip(range(num_refls), refls))
     total_qubits = (var_size*num_refls)
     Jmat, hvec, ic = get_zeros(total_qubits)
+
+    if weights is None:
+        weights = np.ones(num_triplets)
 
     for i, t in enumerate(triplets):
         if verbose:
@@ -129,9 +132,9 @@ def structure_ham(var_size, triplets, friedel=False, symmetric=True, verbose=Fal
             var_size*t_idx[0], var_size*(t_idx[0]+1), var_size*t_idx[1], \
             var_size*(t_idx[1]+1), var_size*t_idx[2], var_size*(t_idx[2]+1), \
             var1_sign=r1_sign, var2_sign=r2_sign, var3_sign=r3_sign, symmetric=symmetric)
-        Jmat += Jmattmp
-        hvec += hvectmp
-        ic += ictmp
+        Jmat += weights[i]*Jmattmp
+        hvec += weights[i]*hvectmp
+        ic += weights[i]*ictmp
 
     if verbose:
         print(' '*len(pline), end='\r')
@@ -139,13 +142,61 @@ def structure_ham(var_size, triplets, friedel=False, symmetric=True, verbose=Fal
 
     return Jmat, hvec, ic, refl_stats, int_to_refl, refl_to_int
 
-def find_top_refls(refl_stats, number):
+def sort_refls(refl_stats):
     idx = np.argsort(list(refl_stats.values()))
     all_refls = list(refl_stats.keys())
     refls = []
-    for j in range(number):
+    for j in range(len(all_refls)):
         refls.append(all_refls[idx[-j]])
     return refls
+
+def find_top_refls(refl_stats, number):
+    sorted_refls = sort_refls(refl_stats)
+    refls = []
+    for j in range(number):
+        refls.append(sorted_refls[j])
+    return refls
+
+def find_fixable_refls(refl_stats):
+    # only fixes 3
+    sorted_refls = sort_refls(refl_stats)
+    first_refl_str = sorted_refls[0]
+    first_refl = np.array([int(y.strip()) for y in (first_refl_str[1:-1].split(","))])
+    first_refln = first_refl / np.sqrt(np.dot(first_refl, first_refl))
+
+    num = 1
+    while True:
+        second_refl_str = sorted_refls[num]
+        second_refl = np.array([int(y.strip()) for y in (second_refl_str[1:-1].split(","))])
+        second_refln = second_refl / np.sqrt(np.dot(second_refl, second_refl))
+        overlap = np.dot(first_refln, second_refln)
+        orth_comp2 = second_refln - (overlap*first_refln)
+        #print(num, np.abs(orth_comp2)**2)
+        if np.dot(orth_comp2, orth_comp2) > 1e-4:
+            break
+        else:
+            num += 1
+
+    orth_comp2n = orth_comp2 / np.sqrt(np.dot(orth_comp2, orth_comp2))
+    #print('done')
+
+    num += 1
+    while True:
+        third_refl_str = sorted_refls[num]
+        third_refl = np.array([int(y.strip()) for y in (third_refl_str[1:-1].split(","))])
+        third_refln = third_refl / np.sqrt(np.dot(third_refl, third_refl))
+        overlap1 = np.dot(first_refln, third_refln)
+        overlap2 = np.dot(orth_comp2n, third_refln)
+        orth_comp3 = third_refln - ( (overlap1*first_refln) + (overlap2*orth_comp2n) )
+        #print(num, np.abs(overlap1)**2, np.abs(overlap2)**2, np.dot(orth_comp3, orth_comp3))
+        if np.dot(orth_comp3, orth_comp3) > 1e-4:
+            break
+        else:
+            num += 1
+
+    return [first_refl_str, second_refl_str, third_refl_str]
+
+
 
 def fix_variables(Jmat, hvec, ic, refl_stats, refl_to_int, refls_to_fix):
     Jmat_mod, hvec_mod, ic_mod =  Jmat, hvec, ic
