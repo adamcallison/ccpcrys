@@ -79,11 +79,11 @@ def decode_binary(state, var_sizes):
 def ints_to_angles(ints, var_sizes, symmetric=True):
     var_sizes = np.array(var_sizes, dtype=int)
     if symmetric:
-        ms = ints + 1
-        angles = ( 2*np.pi*ms/((2**var_sizes) + 2) ) - np.pi
+        shift = 0.5
     else:
-        ms = ints
-        angles = ( 2*np.pi*ms/((2**var_sizes)) ) - np.pi
+        shift = 0.0
+    vals = ((ints+shift)/(2**var_sizes)) - 0.5
+    angles = 2*np.pi*vals
     return angles
 
 def compute_angle_sums(angles, triplets, refl_to_int, friedel=False):
