@@ -26,12 +26,31 @@ def friedel_standard(r):
         return rl[2] >= 0
     raise Exception("Shouldn't have reached here")
 
+def friedel_invert(r):
+    rl = [int(x) for x in r.strip('[').strip(']').split(',')]
+    rl = [-1*x for x in rl]
+    r = ''.join(str(rl).split())
+    return r
+
 def friedel_standardise(r):
     if not friedel_standard(r):
-        rl = [int(x) for x in r.strip('[').strip(']').split(',')]
-        rl = [-1*x for x in rl]
-        r = ''.join(str(rl).split())
+        return friedel_invert(r)
     return r
+
+def triplet_friedel_deduplicate(triplets, get_inds=False):
+    friedel_unique_triplets = []
+    inds = []
+    for j, t in enumerate(triplets):
+        t_invert = [friedel_invert(r) for r in t]
+        if (t in friedel_unique_triplets) or (t_invert in friedel_unique_triplets):
+            continue
+        else:
+            friedel_unique_triplets.append(t)
+            inds.append(j)
+    if get_inds:
+        return friedel_unique_triplets, inds
+    else:
+        return friedel_unique_triplets
 
 def reflection_stats(triplets, friedel=False):
     refls = {}
@@ -44,12 +63,6 @@ def reflection_stats(triplets, friedel=False):
                 refls[r] = 1
     return refls
 
-#def reduced_state_to_original(reduced_state, toprefl_vec, toprefl_start):
-#    state = reduced_state
-#    state = np.array(list(state[:toprefl_start]) + list(toprefl_vec) + \
-#        list(state[toprefl_start:]))
-#    return state
-
 def reduced_state_to_original(reduced_state, fixedrefl_vecs, fixedrefl_starts):
     idx = np.argsort(fixedrefl_starts)
     fixedrefl_starts = np.array(fixedrefl_starts)[idx]
@@ -61,8 +74,6 @@ def reduced_state_to_original(reduced_state, fixedrefl_vecs, fixedrefl_starts):
                 list(state[fs:]))
         fixedrefl_starts = fixedrefl_starts[1:]
         fixedrefl_vecs = fixedrefl_vecs[1:]
-        #veclen = len(fv)
-        #fixedrefl_starts += veclen
     return state
 
 def decode_binary(state, var_sizes):
@@ -76,7 +87,7 @@ def decode_binary(state, var_sizes):
         var_start = var_end
     return np.array(decoded)
 
-def ints_to_angles(ints, var_sizes, symmetric=True):
+def ints_to_angles_old(ints, var_sizes, symmetric=True):
     var_sizes = np.array(var_sizes, dtype=int)
     if symmetric:
         shift = 0.5
@@ -85,6 +96,32 @@ def ints_to_angles(ints, var_sizes, symmetric=True):
     vals = ((ints+shift)/(2**var_sizes)) - 0.5
     angles = 2*np.pi*vals
     return angles
+
+def ints_to_angles(ints, var_sizes, symmetric=True):
+    var_sizes = np.array(var_sizes, dtype=int)
+    if symmetric:
+        shift = 0.5
+    else:
+        shift = 0.0
+    vals = ((ints+shift)/(2**var_sizes))
+    angles = 2*np.pi*vals
+    return angles
+
+def compute_angle_sums_old(angles, triplets, refl_to_int, friedel=False):
+    ang_sums = []
+    for t in triplets:
+        angs, signs = [], []
+        for r in t:
+            if friedel:
+                r, sign = friedel_standardise(r), (1.0 if friedel_standard(r) else -1.0)
+            else:
+                r, sign = r, 1.0
+            angs.append(angles[refl_to_int[r]])
+            signs.append(sign)
+        ang_sums.append(np.dot(signs, angs))
+
+    ang_sums = np.array(ang_sums)
+    return ang_sums
 
 def compute_angle_sums(angles, triplets, refl_to_int, friedel=False):
     ang_sums = []
@@ -97,7 +134,8 @@ def compute_angle_sums(angles, triplets, refl_to_int, friedel=False):
                 r, sign = r, 1.0
             angs.append(angles[refl_to_int[r]])
             signs.append(sign)
-        ang_sums.append(np.dot(signs, angs))
+        angs = [angs[j] if np.abs(((1.0-signs[j])) < 0.1) else ((2*np.pi)-angs[j]) for j in range(len(angs))]
+        ang_sums.append(np.sum(angs))
 
     ang_sums = np.array(ang_sums)
     return ang_sums

@@ -56,7 +56,8 @@ def mc(Jmat, hvec, ic, var_sizes, initial_state, iterations, T_start, cost_freq=
         if verbose: print(f'Iteration {j} of {iterations}   ', end='\r')
         new_state = update(var_sizes, state)
         e_candidate = cost(new_state, Jmat, hvec, ic)
-        T = T_start*(1-(j/iterations))
+        #T = T_start*(1-(j/iterations))
+        T = T_start*np.log((iterations+1)/(j+1))/np.log(iterations+1)
         pf = lambda ecur, ecand: boltzprob(ecur, ecand, T)
         if acceptrejectprob(e_current, e_candidate, pf):
             state = new_state
