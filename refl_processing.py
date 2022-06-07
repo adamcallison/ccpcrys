@@ -85,7 +85,7 @@ def decode_binary(state, var_sizes):
         var_val = np.sum([(2**j)*x for j, x in enumerate(((1 - var_state) / 2))])
         decoded.append(var_val)
         var_start = var_end
-    return np.array(decoded)
+    return np.array(decoded, dtype=int)
 
 def ints_to_angles_old(ints, var_sizes, symmetric=True):
     var_sizes = np.array(var_sizes, dtype=int)
